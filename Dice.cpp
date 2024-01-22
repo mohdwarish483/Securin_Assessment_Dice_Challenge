@@ -3,13 +3,50 @@
 
 using namespace std;
 
-// Function to calculate the total number of combinations
-int calculateTotalCombinations()
+// Count occurrences of each sum (2-12)
+
+int sumCount[13] = {0};
+
+// Calculate the total number of combinations
+int calculateTotalCombinations(int dieASize, int dieBSize)
 {
-    return 6 * 6;
+    return dieASize * dieBSize;
+}
+// Possible combinations of dice A
+void dieAPossibleCombinations(int number, vector<int> &temp, vector<vector<int>> &dieA)
+{
+    if (temp.size() == 6)
+    {
+        dieA.push_back(temp);
+        return;
+    }
+
+    for (int i = number; i <= 6; ++i)
+    {
+        temp.push_back(i);
+        dieAPossibleCombinations(i, temp, dieA);
+        temp.pop_back();
+    }
 }
 
-// Function to calculate and display the distribution of combinations
+// Possible combinations of dice B
+void dieBPossibleCombinations(int number, vector<int> &temp, vector<vector<int>> &dieB)
+{
+    if (temp.size() == 6)
+    {
+        dieB.push_back(temp);
+        return;
+    }
+
+    for (int i = number; i <= 8; ++i)
+    {
+        temp.push_back(i);
+        dieBPossibleCombinations(i, temp, dieB);
+        temp.pop_back();
+    }
+}
+
+// Calculate and display the distribution of combinations
 void calculateCombinationDistribution(const vector<int> &dieA, const vector<int> &dieB)
 {
     int numSides = 6;
@@ -36,222 +73,138 @@ void calculateCombinationDistribution(const vector<int> &dieA, const vector<int>
     }
 }
 
-// Function to calculate the probability of each possible sum
 void calculateProbabilityOfSums(const vector<int> &dieA, const vector<int> &dieB)
 {
     int numSides = 6;
-    vector<int> sumCount(13, 0); // Count occurrences of each sum (2-12)
 
-    // Count occurrences of each sum in the combinations
-    for (int i = 0; i < numSides; ++i)
+    for (size_t i = 0; i < dieA.size(); ++i)
     {
-        for (int j = 0; j < numSides; ++j)
+        for (size_t j = 0; j < dieB.size(); ++j)
         {
-            int sum = dieA[i] + dieB[j];
-            sumCount[sum - 2]++;
+            int temp = dieA[i] + dieB[j];
+            ++sumCount[temp];
         }
     }
 
-    // Calculate probability for each sum
-    int totalCombinations = calculateTotalCombinations();
-    cout << "Probability of Sums:" << endl;
-    for (int i = 2; i <= 12; ++i)
+    // Print the custom probabilities
+
+    int totalCombinations = calculateTotalCombinations(dieA.size(), dieB.size());
+    cout << "\n======================================================================\n";
+    cout << "\n Probabilities of sums before transformation: \n";
+    cout << "\n======================================================================\n";
+    for (int k = 2; k <= 12; ++k)
     {
-        cout << "P(Sum = " << i << ") = " << sumCount[i - 2] << "/" << totalCombinations << endl;
+        double probability = static_cast<double>(sumCount[k]) / totalCombinations;
+        cout << "P(Sum = " << k << ") = " << sumCount[k] << "/" << totalCombinations << " = " << probability << "\n";
     }
 }
 
-// Helper function to identify sums with unique combinations
-vector<int> findUniqueSums(const vector<int> &dieA, const vector<int> &dieB)
+void undoom_dice(const vector<int> &dieA, const vector<int> &dieB)
 {
-    vector<int> uniqueSums;
-    vector<int> sumCount(13, 0); // Count occurrences of each sum (2-12)
+    cout << "\n=====================================================================\n";
+    cout << "Undooming dice and Reattaching the spots :\n";
 
-    for (int i = 0; i < 6; ++i)
+    vector<vector<int>> custom_dieA;
+    vector<vector<int>> custom_dieB;
+
+    // combinations for dice A and B
+    vector<int> temp;
+    dieAPossibleCombinations(1, temp, custom_dieA);
+    dieBPossibleCombinations(1, temp, custom_dieB);
+
+    // Iterate through all combinations to find the matches with probability distribution before transformation
+    for (const auto &i : custom_dieA)
     {
-        for (int j = 0; j < 6; ++j)
+        for (const auto &j : custom_dieB)
         {
-            int sum = dieA[i] + dieB[j];
-            sumCount[sum - 2]++;
-            if (sumCount[sum - 2] == 1)
+            int tempSum[13] = {0};
+
+            // Calculate the sum of each combination
+            for (size_t k = 0; k < i.size(); ++k)
             {
-                uniqueSums.push_back(sum);
-            }
-        }
-    }
-    return uniqueSums;
-}
-
-// Helper function to calculate the count of each possible sum for a pair of dice
-vector<int> calculateSumCount(const vector<int> &dieA, const vector<int> &dieB)
-{
-    vector<int> sumCount(13, 0);
-    for (int i = 0; i < 6; ++i)
-    {
-        for (int j = 0; j < 6; ++j)
-        {
-            sumCount[dieA[i] + dieB[j] - 2]++;
-        }
-    }
-    return sumCount;
-}
-
-// Function to "undoom" the dice
-void undoom_dice(const vector<int> &dieA, const vector<int> &dieB, vector<int> &newDieA, vector<int> &newDieB)
-{
-    // Analyze Current Distribution
-    vector<int> uniqueSums = findUniqueSums(dieA, dieB);
-    cout << "Unique Sums: ";
-    for (int sum : uniqueSums)
-    {
-        cout << sum << " ";
-    }
-
-    cout << endl;
-
-    // Modify Die B
-    newDieB = dieB;
-
-    // Modify Die B to preserve unique sums while respecting other constraints
-    for (int sum : uniqueSums)
-    {
-        int faceIndex = -1;
-        for (int i = 0; i < 6; ++i)
-        {
-            if (dieA[i] + dieB[i] == sum)
-            {
-                faceIndex = i;
-                break;
-            }
-        }
-        if (faceIndex != -1)
-        {
-            while (newDieA[faceIndex] + newDieB[faceIndex] != sum)
-            {
-                // Increase Die B face value until the sum matches the unique sum
-                newDieB[faceIndex]++;
-
-                // If increasing Die B exceeds its allowable range, prioritize faces not involved in unique sums
-                if (newDieB[faceIndex] > 6)
+                for (size_t l = 0; l < j.size(); ++l)
                 {
-                    for (int i = 0; i < 6; ++i)
-                    {
-                        if (i != faceIndex && newDieA[i] + newDieB[i] > sum)
-                        {
-                            newDieB[i]--;
-                            break;
-                        }
-                    }
+                    int sum = i[k] + j[l];
+                    ++tempSum[sum];
                 }
             }
-        }
-    }
 
-    cout << "New Die B: ";
-    for (int value : newDieB)
-    {
-        cout << value << " ";
-    }
-    cout << endl;
-
-    // Modify Die A within Constraints
-    newDieA = dieA; // Start with original values
-    int remainingSpots = 0;
-    for (int i = 0; i < 6; ++i)
-    {
-        remainingSpots += dieA[i] - newDieB[i]; // Redistribute spots from Die B to A
-    }
-    cout << "Remaining Spots: " << remainingSpots << endl;
-
-    // Distribute remaining spots among Die A faces, prioritizing unique sums and keeping all values under 4
-    for (int sum : uniqueSums)
-    {
-        int faceIndex = -1;
-        for (int i = 0; i < 6; ++i)
-        {
-            if (dieA[i] + dieB[i] == sum)
+            // Check if the probability distribution matches the probability distribution before transformation
+            bool distributionMatches = true;
+            for (int m = 0; m < 13; ++m)
             {
-                faceIndex = i;
-                break;
+                if (tempSum[m] != sumCount[m])
+                {
+                    distributionMatches = false;
+                    break;
+                }
+            }
+
+            // If the distribution matches, print the transformed dice and probabilities
+            if (distributionMatches)
+            {
+                cout << "\n======================================================================\n";
+                cout << "Transformed DiceA : ";
+                for (const auto &val : i)
+                {
+                    cout << val << " ";
+                }
+                cout << "\n======================================================================\n";
+
+                cout << "Transformed DiceB : ";
+                for (const auto &val : j)
+                {
+                    cout << val << " ";
+                }
+                cout << "\n======================================================================\n";
+                cout << "Probability of sums After Transforming:";
+                cout << "\n======================================================================\n";
+
+                int totalCombinations = calculateTotalCombinations(dieA.size(), dieB.size());
+
+                for (int n = 2; n <= 12; ++n)
+                {
+                    double probability = static_cast<double>(tempSum[n]) / (dieA.size() * dieB.size());
+                    cout << "P(Sum = " << n << ") = " << tempSum[n] << "/" << totalCombinations << " = " << probability << endl;
+                }
+                return; // No need to continue searching
             }
         }
-        if (faceIndex != -1)
-        {
-            while (newDieA[faceIndex] + newDieB[faceIndex] != sum && newDieA[faceIndex] < 4)
-            {
-                newDieA[faceIndex]++;
-                remainingSpots--;
-            }
-        }
-    }
-
-    // Distribute remaining spots evenly among Die A faces, ensuring no face exceeds 4
-    for (int i = 0; i < 6; ++i)
-    {
-        while (remainingSpots > 0 && newDieA[i] < 4)
-        {
-            newDieA[i]++;
-            remainingSpots--;
-        }
-    }
-
-    // Validating Probability Distribution
-    vector<int> originalSumCount = calculateSumCount(dieA, dieB);
-    vector<int> modifiedSumCount = calculateSumCount(newDieA, newDieB);
-
-    bool distributionPreserved = true;
-    for (int i = 0; i < 13; ++i)
-    {
-        if (originalSumCount[i] != modifiedSumCount[i])
-        {
-            distributionPreserved = false;
-            cout << "Warning: Probability distribution for sum " << i + 2 << " has changed." << endl;
-        }
-    }
-
-    if (distributionPreserved)
-    {
-        cout << "Probability distribution successfully preserved!" << endl;
-    }
-    else
-    {
-        cout << "Probability distribution not fully preserved. Consider adjusting the algorithm." << endl;
     }
 }
 
 int main()
 {
-   
-    vector<int> originalDieA = {1, 2, 3, 4, 5, 6};
-    vector<int> originalDieB = {1, 2, 3, 4, 5, 6};
+    // Original dice values
+    vector<int> Original_A = {1, 2, 3, 4, 5, 6};
+    vector<int> Original_B = {1, 2, 3, 4, 5, 6};
 
-    vector<int> newDieA, newDieB;
+    cout << "\n======================================================================\n";
+    cout << "Dice A before transformation : ";
+    for (const auto &value : Original_A)
+    {
+        cout << value << " ";
+    }
+    cout << "\n======================================================================\n";
 
-    // Part-A calculations
-    int combinations = calculateTotalCombinations();
+    cout << "Dice B before transformation: ";
+    for (const auto &value : Original_B)
+    {
+        cout << value << " ";
+    }
+    cout << "\n======================================================================\n";
+
+    int combinations = calculateTotalCombinations(Original_A.size(), Original_B.size());
     cout << "Total Combinations : " << combinations << endl;
-    cout << "===============================================" << endl;
-    calculateCombinationDistribution(originalDieA, originalDieB);
-    cout << "===============================================" << endl;
-    calculateProbabilityOfSums(originalDieA, originalDieB);
-    cout << "===============================================" << endl;
-    // Part-B: Undoom the dice
-    undoom_dice(originalDieA, originalDieB, newDieA, newDieB);
+    cout << "\n======================================================================\n";
 
-    // modified dice values
-    cout << "Modified Die A: ";
-    for (int value : newDieA)
-    {
-        cout << value << " ";
-    }
-    cout << endl;
-    cout << "===============================================" << endl;
-    cout << "Modified Die B: ";
-    for (int value : newDieB)
-    {
-        cout << value << " ";
-    }
-    cout << endl;
-    cout << "===============================================" << endl;
+    calculateCombinationDistribution(Original_A, Original_B);
+
+    // Probabilities before transformation
+
+    calculateProbabilityOfSums(Original_A, Original_B);
+    // Call the function to undo the transformation and print the results
+    undoom_dice(Original_A, Original_B);
+
     return 0;
 }
